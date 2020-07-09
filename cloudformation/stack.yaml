@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+
+Resources:
+
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - LambdaRole
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-SecretProviderPolicy"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - iam:CreateAccessKey
+              - iam:DeleteAccessKey
+              - iam:UpdateAccessKey
+              - ssm:PutParameter
+              - ssm:GetParameter
+              - ssm:DeleteParameter
+              - ec2:ImportKeyPair
+              - ec2:DeleteKeyPair
+              - secretsmanager:DeleteSecret
+              - secretsmanager:CreateSecret
+              - secretsmanager:UpdateSecret
+            Effect: Allow
+            Resource:
+              - '*'
+          - Action:
+              - kms:Decrypt
+            Effect: Allow
+            Resource:
+              # TODO - !GetAtt 'Key.Arn'
+              - '*'
+          - Action:
+              - logs:*
+            Effect: Allow
+            Resource: arn:aws:logs:*:*:*
+      Roles:
+        - !Ref LambdaRole
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
